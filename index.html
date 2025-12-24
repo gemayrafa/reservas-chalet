@@ -71,7 +71,7 @@
 
             return {
                 title: res.estado === 'Reservado' ? 'OCUPADO' : 'PENDIENTE',
-                start: res.inicio, // Probamos pasar el texto directo del Excel
+                start: res.inicio.split('T')[0], end: res.fin.split('T')[0], // Probamos pasar el texto directo del Excel
                 end: res.fin,
                 color: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
                 display: 'background',

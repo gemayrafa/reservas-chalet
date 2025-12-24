@@ -42,6 +42,17 @@
 </div>
 
 <script>
+// Añade esta función de apoyo al principio de tu <script>
+function formatearFecha(fechaStr) {
+    if(!fechaStr) return "-";
+    const fecha = new Date(fechaStr);
+    // Retorna formato día/mes/año (ej: 25/12/2024)
+    return fecha.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
     async function cargarReservas() {
@@ -65,16 +76,16 @@
             datos.forEach((reserva) => {
                 const fila = document.createElement('tr');
                 fila.innerHTML = `
-                    <td>${reserva.nombre}</td>
-                    <td>${reserva.personas}</td>
-                    <td>${reserva.inicio}</td>
-                    <td>${reserva.fin}</td>
-                    <td><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
-                    <td>
-                        <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Confirmar</button>
-                        <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
-                    </td>
-                `;
+                   <td>${reserva.nombre}</td>
+    <td>${reserva.personas}</td>
+    <td>${formatearFecha(reserva.inicio)}</td>
+    <td>${formatearFecha(reserva.fin)}</td>
+    <td><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
+    <td>
+        <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Confirmar</button>
+        <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
+    </td>
+`;
                 tbody.appendChild(fila);
             });
         } catch (e) {
