@@ -98,34 +98,55 @@
         calendar.render();
     });
 
-    async function enviarReserva() {
-        const nombre = document.getElementById('nombre').value;
-        const personas = document.getElementById('personas').value;
+   async function enviarReserva() {
+    const nombre = document.getElementById('nombre').value;
+    const personas = document.getElementById('personas').value;
 
-        if(!nombre || !personas) return alert("Por favor completa los datos");
+    if(!nombre || !personas) return alert("Por favor completa los datos");
 
-        const datos = {
-            fechaInicio: selectedRange.start,
-            fechaFin: selectedRange.end,
-            nombre: nombre,
-            personas: personas
-        };
+    const datos = {
+        fechaInicio: selectedRange.start,
+        fechaFin: selectedRange.end,
+        nombre: nombre,
+        personas: personas
+    };
 
-        try {
-            // 1. Guardar en Google Sheets
-            await fetch(scriptURL, { method: 'POST', body: JSON.stringify(datos) });
+    try {
+        // 1. Guardamos en el Excel
+        await fetch(scriptURL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify(datos) 
+        });
+        
+        // 2. Preparamos el mensaje de WhatsApp con tu enlace de gestión
+        const linkGestion = "https://gemayrafa.github.io/reservas-chalet/autorizar-reservas-99";
+        const textoWA = `Hola! Quiero solicitar una reserva.\n\n` +
+                        `👤 Nombre: ${nombre}\n` +
+                        `👥 Personas: ${personas}\n` +
+                        `📅 Fechas: del ${selectedRange.start} al ${selectedRange.end}\n\n` +
+                        `🔗 Gestionar aquí: ${linkGestion}`;
+        
+        const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
 
-            // 2. Crear mensaje de WhatsApp
-            const textoWA = `Hola! Quiero solicitar una reserva.\nNombre: ${nombre}\nPersonas: ${personas}\nFechas: del ${selectedRange.start} al ${selectedRange.end}`;
-            const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
-            
-            alert("Solicitud registrada. Abriendo WhatsApp para avisar al administrador...");
-            window.open(urlWA, '_blank');
-            location.reload();
-        } catch (e) {
-            alert("Error al guardar la reserva");
-        }
+        // 3. Cambiamos la interfaz para el segundo clic (evitar bloqueo de navegador)
+        const btnContainer = document.querySelector('#formReserva');
+        btnContainer.innerHTML = `
+            <div style="background: #e7f3ff; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #b3d7ff;">
+                <p style="color: #0d47a1; font-weight: bold;">✅ Solicitud registrada en el sistema.</p>
+                <p>Para finalizar, pulsa el botón verde para enviarnos el aviso por WhatsApp:</p>
+                <a href="${urlWA}" target="_blank" 
+                   style="display: inline-block; background-color: #25D366; color: white; padding: 16px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; box-shadow: 0 4px 10px rgba(37,211,102,0.3);">
+                   📱 Enviar aviso por WhatsApp
+                </a>
+                <br><br>
+                <small><a href="javascript:location.reload()" style="color: #666;">Hacer otra selección</a></small>
+            </div>
+        `;
+    } catch (e) {
+        alert("Hubo un error al conectar. Por favor, inténtalo de nuevo.");
     }
+}
 </script>
 
 </body>
