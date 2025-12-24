@@ -2,21 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Reservas - Calendario</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h1 { text-align: center; font-weight: 600; color: #1a73e8; }
-        #calendar { margin-bottom: 20px; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; margin: 0; padding: 10px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { text-align: center; font-weight: 600; color: #1a73e8; font-size: 1.5rem; }
+        @media (max-width: 600px) {
+            body { padding: 5px; }
+            .container { padding: 10px; }
+            h1 { font-size: 1.2rem; }
+            .fc-toolbar-title { font-size: 1rem !important; }
+            .fc-button { padding: 5px 8px !important; font-size: 0.8rem !important; }
+        }
+        #calendar { margin-bottom: 20px; max-height: 80vh; }
+        .fc-event-main { color: #000000 !important; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
         .form-reserva { display: none; padding: 20px; border-top: 2px solid #eee; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { background-color: #1a73e8; color: white; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        button:hover { background-color: #1557b0; }
-        .status-info { display: flex; justify-content: center; gap: 15px; font-size: 0.9em; margin-bottom: 10px; }
+        button:active { transform: scale(0.98); }
+        .status-info { display: flex; justify-content: center; gap: 10px; font-size: 0.8em; margin-bottom: 15px; flex-wrap: wrap; }
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
     </style>
 </head>
@@ -24,18 +32,15 @@
 
 <div class="container">
     <h1>Reservas Online</h1>
-    
     <div class="status-info">
-        <span><span class="dot" style="background:#28a745"></span> Libre</span>
+        <span><span class="dot" style="background:#ffffff; border: 1px solid #ddd"></span> Libre</span>
         <span><span class="dot" style="background:#ff9800"></span> Pendiente</span>
         <span><span class="dot" style="background:#dc3545"></span> Reservado</span>
     </div>
-
     <div id="calendar"></div>
-
     <div id="formReserva" class="form-reserva">
         <h3>Completar Reserva</h3>
-        <p id="rangoSeleccionado"></p>
+        <p id="rangoSeleccionado" style="font-weight: bold; color: #1a73e8;"></p>
         <input type="text" id="nombre" placeholder="Nombre completo" required>
         <input type="number" id="personas" placeholder="Número de personas" min="1" required>
         <button onclick="enviarReserva()">Confirmar y enviar WhatsApp</button>
@@ -43,11 +48,15 @@
 </div>
 
 <script>
-    // --- CONFIGURACIÓN ---
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec'; 
-    const telAdministrador = '34611769813'; // Tu número con prefijo (ej 34 para España)
-    
-    let selectedRange = { start: '', end: '' };
+    const telAdministrador = '34611769813'; 
+    let selectedRange = { start: '', end: '', visualEnd: '' };
+
+    function formatoEuropeo(fechaStr) {
+        if(!fechaStr) return "";
+        const parts = fechaStr.split('T')[0].split('-');
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
@@ -55,99 +64,66 @@
             initialView: 'dayGridMonth',
             locale: 'es',
             selectable: true,
+            height: 'auto',
+            timeZone: 'local',
             headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
-            
-            // Cargar datos desde Google Sheets
             events: async function(info, successCallback, failureCallback) {
-    try {
-        const response = await fetch(scriptURL + '?t=' + new Date().getTime());
-        const data = await response.json();
-        
-        // Transformamos los datos para que FullCalendar no se confunda
-        const events = data.map(res => {
-            // Aseguramos que las fechas sean texto limpio o objetos Date
-            let fechaInicio = new Date(res.inicio);
-            let fechaFin = new Date(res.fin);
-
-            return {
-                title: res.estado === 'Reservado' ? 'OCUPADO' : 'PENDIENTE',
-                start: res.inicio.split('T')[0], end: res.fin.split('T')[0], // Probamos pasar el texto directo del Excel
-                end: res.fin,
-                color: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
-                display: 'background',
-                allDay: true
-            };
-        });
-        
-        console.log("Eventos cargados:", events); // Esto nos dirá en la consola qué está llegando
-        successCallback(events);
-    } catch (e) { 
-        console.error("Error detallado:", e); 
-    }
-},
-
-            // Selección de fechas
+                try {
+                    const response = await fetch(scriptURL + '?t=' + new Date().getTime());
+                    const data = await response.json();
+                    const events = data.map(res => ({
+                        title: res.estado === 'Reservado' ? 'RESERVADO' : 'PENDIENTE',
+                        start: res.inicio.split('T')[0],
+                        end: res.fin.split('T')[0],
+                        backgroundColor: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
+                        borderColor: 'transparent',
+                        display: 'block',
+                        allDay: true
+                    }));
+                    successCallback(events);
+                } catch (e) { console.error(e); }
+            },
             select: function(info) {
-                selectedRange.start = info.startStr;
-                selectedRange.end = info.endStr;
+                const inicioISO = info.startStr;
+                const finOriginalISO = info.endStr;
+                
+                let fechaFinVisual = new Date(info.end);
+                fechaFinVisual.setDate(fechaFinVisual.getDate() - 1);
+                const finVisualISO = fechaFinVisual.toISOString().split('T')[0];
+
+                selectedRange.start = inicioISO;
+                selectedRange.end = finOriginalISO;
+                selectedRange.visualEnd = finVisualISO;
+
                 document.getElementById('formReserva').style.display = 'block';
-                document.getElementById('rangoSeleccionado').innerText = `Del ${info.startStr} al ${info.endStr}`;
+                document.getElementById('rangoSeleccionado').innerHTML = `Selección: ${formatoEuropeo(inicioISO)} hasta ${formatoEuropeo(finVisualISO)}`;
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             }
         });
         calendar.render();
     });
 
-   async function enviarReserva() {
-    const nombre = document.getElementById('nombre').value;
-    const personas = document.getElementById('personas').value;
+    async function enviarReserva() {
+        const nombre = document.getElementById('nombre').value;
+        const personas = document.getElementById('personas').value;
+        if(!nombre || !personas) return alert("Por favor completa los datos");
 
-    if(!nombre || !personas) return alert("Por favor completa los datos");
+        const datos = { fechaInicio: selectedRange.start, fechaFin: selectedRange.end, nombre: nombre, personas: personas };
+        const btnOriginal = document.querySelector('#formReserva button');
+        btnOriginal.disabled = true;
+        btnOriginal.innerText = "Registrando...";
 
-    const datos = {
-        fechaInicio: selectedRange.start,
-        fechaFin: selectedRange.end,
-        nombre: nombre,
-        personas: personas
-    };
-
-    try {
-        // 1. Guardamos en el Excel
-        await fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify(datos) 
-        });
-        
-        // 2. Preparamos el mensaje de WhatsApp con tu enlace de gestión
-        const linkGestion = "https://gemayrafa.github.io/reservas-chalet/autorizar-reservas-99";
-        const textoWA = `Hola! Quiero solicitar una reserva.\n\n` +
-                        `👤 Nombre: ${nombre}\n` +
-                        `👥 Personas: ${personas}\n` +
-                        `📅 Fechas: del ${selectedRange.start} al ${selectedRange.end}\n\n` +
-                        `🔗 Gestionar aquí: ${linkGestion}`;
-        
-        const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
-
-        // 3. Cambiamos la interfaz para el segundo clic (evitar bloqueo de navegador)
-        const btnContainer = document.querySelector('#formReserva');
-        btnContainer.innerHTML = `
-            <div style="background: #e7f3ff; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #b3d7ff;">
-                <p style="color: #0d47a1; font-weight: bold;">✅ Solicitud registrada en el sistema.</p>
-                <p>Para finalizar, pulsa el botón verde para enviarnos el aviso por WhatsApp:</p>
-                <a href="${urlWA}" target="_blank" 
-                   style="display: inline-block; background-color: #25D366; color: white; padding: 16px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; box-shadow: 0 4px 10px rgba(37,211,102,0.3);">
-                   📱 Enviar aviso por WhatsApp
-                </a>
-                <br><br>
-                <small><a href="javascript:location.reload()" style="color: #666;">Hacer otra selección</a></small>
-            </div>
-        `;
-    } catch (e) {
-        alert("Hubo un error al conectar. Por favor, inténtalo de nuevo.");
+        try {
+            await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
+            const linkGestion = "https://gemayrafa.github.io/reservas-chalet/autorizar-reservas-99";
+            
+            const textoWA = `Hola! Quiero solicitar una reserva.\n\n👤 Nombre: ${nombre}\n👥 Personas: ${personas}\n📅 Fechas: del ${formatoEuropeo(selectedRange.start)} al ${formatoEuropeo(selectedRange.visualEnd)}\n\n🔗 Gestionar aquí: ${linkGestion}`;
+            const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
+            
+            const btnContainer = document.querySelector('#formReserva');
+            btnContainer.innerHTML = `<div style="background: #e7f3ff; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #b3d7ff;"><p style="color: #0d47a1; font-weight: bold;">✅ Solicitud enviada.</p><a href="${urlWA}" target="_blank" style="display: inline-block; background-color: #25D366; color: white; padding: 16px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.1em;">📱 Notificar por WhatsApp</a><br><br><small><a href="javascript:location.reload()" style="color: #666;">Cerrar</a></small></div>`;
+        } catch (e) { alert("Error"); btnOriginal.disabled = false; }
     }
-}
 </script>
-
 </body>
 </html>
