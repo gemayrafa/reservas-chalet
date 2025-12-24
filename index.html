@@ -59,19 +59,32 @@
             
             // Cargar datos desde Google Sheets
             events: async function(info, successCallback, failureCallback) {
-                try {
-                    const response = await fetch(scriptURL + '?t=' + new Date().getTime());
-                    const data = await response.json();
-                    const events = data.map(res => ({
-                        title: res.estado,
-                        start: res.inicio,
-                        end: res.fin,
-                        color: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
-                        display: 'background'
-                    }));
-                    successCallback(events);
-                } catch (e) { console.error(e); }
-            },
+    try {
+        const response = await fetch(scriptURL + '?t=' + new Date().getTime());
+        const data = await response.json();
+        
+        // Transformamos los datos para que FullCalendar no se confunda
+        const events = data.map(res => {
+            // Aseguramos que las fechas sean texto limpio o objetos Date
+            let fechaInicio = new Date(res.inicio);
+            let fechaFin = new Date(res.fin);
+
+            return {
+                title: res.estado === 'Reservado' ? 'OCUPADO' : 'PENDIENTE',
+                start: res.inicio, // Probamos pasar el texto directo del Excel
+                end: res.fin,
+                color: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
+                display: 'background',
+                allDay: true
+            };
+        });
+        
+        console.log("Eventos cargados:", events); // Esto nos dirá en la consola qué está llegando
+        successCallback(events);
+    } catch (e) { 
+        console.error("Error detallado:", e); 
+    }
+},
 
             // Selección de fechas
             select: function(info) {
