@@ -60,7 +60,7 @@
             // Cargar datos desde Google Sheets
             events: async function(info, successCallback, failureCallback) {
                 try {
-                    const response = await fetch(scriptURL);
+                    const response = await fetch(scriptURL + '?t=' + new Date().getTime());
                     const data = await response.json();
                     const events = data.map(res => ({
                         title: res.estado,
