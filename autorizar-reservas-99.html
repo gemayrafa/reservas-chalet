@@ -42,10 +42,10 @@
 </div>
 
 <script>
-    const scriptURL = 'TU_URL_DE_APPS_SCRIPT_AQUI';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
     async function cargarReservas() {
-        const res = await fetch(scriptURL);
+        const res = const res = await fetch(scriptURL + '?t=' + new Date().getTime());
         const datos = await res.json();
         const tbody = document.querySelector('#tablaReservas tbody');
         tbody.innerHTML = '';
