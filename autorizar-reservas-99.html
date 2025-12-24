@@ -45,49 +45,65 @@
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
     async function cargarReservas() {
-        const res = const res = await fetch(scriptURL + '?t=' + new Date().getTime());
-        const datos = await res.json();
         const tbody = document.querySelector('#tablaReservas tbody');
-        tbody.innerHTML = '';
+        tbody.innerHTML = '<tr><td colspan="6">Cargando datos...</td></tr>';
 
-        datos.forEach((reserva, index) => {
-            const fila = document.createElement('tr');
-            fila.innerHTML = `
-                <td>${reserva.nombre}</td>
-                <td>${reserva.personas}</td>
-                <td>${reserva.inicio}</td>
-                <td>${reserva.fin}</td>
-                <td><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
-                <td>
-                    <button class="btn btn-confirm" onclick="cambiarEstado(${index + 2}, 'Reservado')">Confirmar</button>
-                    <button class="btn btn-delete" onclick="cambiarEstado(${index + 2}, 'Eliminado')">Borrar</button>
-                </td>
-            `;
-            tbody.appendChild(fila);
-        });
+        try {
+            // Añadimos el "nocache" para asegurar datos frescos
+            const res = await fetch(scriptURL + '?t=' + new Date().getTime());
+            
+            if (!res.ok) throw new Error("Error en la respuesta del servidor");
+            
+            const datos = await res.json();
+            
+            if (datos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No hay reservas registradas.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            datos.forEach((reserva) => {
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td>${reserva.nombre}</td>
+                    <td>${reserva.personas}</td>
+                    <td>${reserva.inicio}</td>
+                    <td>${reserva.fin}</td>
+                    <td><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
+                    <td>
+                        <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Confirmar</button>
+                        <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
+                    </td>
+                `;
+                tbody.appendChild(fila);
+            });
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = `<tr><td colspan="6" style="color:red">Error al cargar: ${e.message}. Revisa la URL del script.</td></tr>`;
+        }
     }
 
     async function cambiarEstado(filaId, nuevoEstado) {
-    if(!confirm(`¿Seguro que quieres marcar como ${nuevoEstado}?`)) return;
+        if(!confirm(`¿Marcar como ${nuevoEstado}?`)) return;
 
-    const datos = {
-        action: "update",
-        id: filaId,
-        nuevoEstado: nuevoEstado
-    };
+        const datos = { action: "update", id: filaId, nuevoEstado: nuevoEstado };
 
-    try {
-        await fetch(scriptURL, { 
-            method: 'POST', 
-            body: JSON.stringify(datos) 
-        });
-        alert("¡Estado actualizado!");
-        cargarReservas(); // Recarga la tabla para ver los cambios
-    } catch (e) {
-        alert("Error al actualizar");
+        try {
+            // Usamos 'no-cors' para el envío si falla el normal, 
+            // pero para actualizar necesitamos la respuesta, así que probamos estándar:
+            await fetch(scriptURL, { 
+                method: 'POST', 
+                body: JSON.stringify(datos) 
+            });
+            alert("¡Actualizado! Los cambios se verán en unos segundos.");
+            setTimeout(cargarReservas, 2000); // Recarga tras 2 segundos
+        } catch (e) {
+            alert("Error al actualizar el estado.");
+        }
     }
 
     window.onload = cargarReservas;
+</script>
 </script>
 
 </body>
