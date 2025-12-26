@@ -10,21 +10,16 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; margin: 0; padding: 10px; -webkit-tap-highlight-color: transparent; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         h1 { text-align: center; font-weight: 600; color: #1a73e8; font-size: 1.5rem; }
-        @media (max-width: 600px) {
-            body { padding: 5px; }
-            .container { padding: 10px; }
-            h1 { font-size: 1.2rem; }
-            .fc-toolbar-title { font-size: 0.9rem !important; }
-            .fc-button { padding: 4px 6px !important; font-size: 0.7rem !important; }
-        }
+        .btn-abrir-reserva { background: #1a73e8; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; }
         #calendar { margin-bottom: 20px; max-height: 80vh; }
         .fc-event-main { color: #000000 !important; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
-        /* Mejora visual para la selección en móvil */
         .fc-highlight { background: rgba(26, 115, 232, 0.3) !important; }
         .form-reserva { display: none; padding: 20px; border-top: 2px solid #eee; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         input, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        button { background-color: #1a73e8; color: white; border: none; font-weight: 600; cursor: pointer; }
+        .btn-confirmar { background-color: #1a73e8; color: white; border: none; font-weight: 600; }
         .status-info { display: flex; justify-content: center; gap: 10px; font-size: 0.8em; margin-bottom: 15px; flex-wrap: wrap; }
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
     </style>
@@ -38,94 +33,137 @@
         <span><span class="dot" style="background:#ff9800"></span> Pendiente</span>
         <span><span class="dot" style="background:#dc3545"></span> Reservado</span>
     </div>
+
+    <button class="btn-abrir-reserva" onclick="abrirModal()">📅 Seleccionar fechas para reservar</button>
+
     <div id="calendar"></div>
+
     <div id="formReserva" class="form-reserva">
         <h3>Completar Reserva</h3>
         <p id="rangoSeleccionado" style="font-weight: bold; color: #1a73e8;"></p>
         <input type="text" id="nombre" placeholder="Nombre completo" required>
         <input type="number" id="personas" placeholder="Número de personas" min="1" required>
-        <button onclick="enviarReserva()">Confirmar y enviar WhatsApp</button>
+        <button class="btn-confirmar" onclick="enviarReserva()">Confirmar y enviar WhatsApp</button>
+    </div>
+</div>
+
+<div id="modalFechas" class="modal">
+    <div class="modal-content">
+        <h3>Elige tus fechas</h3>
+        <label>Fecha de entrada:</label>
+        <input type="date" id="inputInicio" onchange="actualizarPrevisualizacion()">
+        <label>Fecha de salida:</label>
+        <input type="date" id="inputFin" onchange="actualizarPrevisualizacion()">
+        <button class="btn-confirmar" onclick="aceptarFechas()">Aceptar Selección</button>
+        <button style="background:#666; color:white;" onclick="cerrarModal()">Cancelar</button>
     </div>
 </div>
 
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec'; 
     const telAdministrador = '34611769813'; 
-    let selectedRange = { start: '', end: '', visualEnd: '' };
+    let selectedRange = { start: '', end: '' }; 
+    let calendar;
 
     function formatoEuropeo(fechaStr) {
         if(!fechaStr) return "";
-        const parts = fechaStr.split('T')[0].split('-');
+        const parts = fechaStr.split('-');
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
-        const calendar = new FullCalendar.Calendar(calendarEl, {
+        calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'es',
-            selectable: true,
-            unselectAuto: false,
-            longPressDelay: 0, // Selección inmediata al tocar en móvil
-            selectLongPressDelay: 0, 
+            selectable: false,
             height: 'auto',
             headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
             events: async function(info, successCallback, failureCallback) {
                 try {
                     const response = await fetch(scriptURL + '?t=' + new Date().getTime());
                     const data = await response.json();
-                    const events = data.map(res => ({
-                        title: res.estado === 'Reservado' ? 'RESERVADO' : 'PENDIENTE',
-                        start: res.inicio.split('T')[0],
-                        end: res.fin.split('T')[0],
-                        backgroundColor: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
-                        borderColor: 'transparent',
-                        display: 'block',
-                        allDay: true
-                    }));
+                    
+                    const events = data.map(res => {
+                        // AJUSTE VISUAL: Sumamos 1 día al inicio y 2 al fin (1 por desfase y 1 por FC exclusivo)
+                        let dInicio = new Date(res.inicio.split('T')[0] + "T12:00:00");
+                        dInicio.setDate(dInicio.getDate() + 1);
+                        
+                        let dFin = new Date(res.fin.split('T')[0] + "T12:00:00");
+                        dFin.setDate(dFin.getDate() + 2); 
+                        
+                        return {
+                            title: res.estado === 'Reservado' ? 'RESERVADO' : 'PENDIENTE',
+                            start: dInicio.toISOString().split('T')[0],
+                            end: dFin.toISOString().split('T')[0],
+                            backgroundColor: res.estado === 'Reservado' ? '#dc3545' : '#ff9800',
+                            borderColor: 'transparent',
+                            display: 'block',
+                            allDay: true
+                        };
+                    });
                     successCallback(events);
                 } catch (e) { console.error(e); }
-            },
-            select: function(info) {
-                const inicioISO = info.startStr;
-                let fechaFinVisual = new Date(info.end);
-                fechaFinVisual.setDate(fechaFinVisual.getDate() - 1);
-                const finVisualISO = fechaFinVisual.toISOString().split('T')[0];
-
-                selectedRange.start = inicioISO;
-                selectedRange.end = info.endStr;
-                selectedRange.visualEnd = finVisualISO;
-
-                document.getElementById('formReserva').style.display = 'block';
-                document.getElementById('rangoSeleccionado').innerHTML = `Selección: ${formatoEuropeo(inicioISO)} hasta ${formatoEuropeo(finVisualISO)}`;
-                
-                // Desplazamiento suave para ver el formulario en móviles
-                setTimeout(() => {
-                    document.getElementById('formReserva').scrollIntoView({ behavior: 'smooth' });
-                }, 100);
             }
         });
         calendar.render();
     });
 
+    function abrirModal() {
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('inputInicio').setAttribute('min', hoy);
+        document.getElementById('inputFin').setAttribute('min', hoy);
+        document.getElementById('modalFechas').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalFechas').style.display = 'none';
+        calendar.unselect();
+    }
+
+    function actualizarPrevisualizacion() {
+        const inicio = document.getElementById('inputInicio').value;
+        const fin = document.getElementById('inputFin').value;
+        if (inicio) document.getElementById('inputFin').setAttribute('min', inicio);
+        
+        if (inicio && fin) {
+            let dFinVisual = new Date(fin + "T12:00:00");
+            dFinVisual.setDate(dFinVisual.getDate() + 1);
+            calendar.select(inicio, dFinVisual.toISOString().split('T')[0]);
+        }
+    }
+
+    function aceptarFechas() {
+        const inicio = document.getElementById('inputInicio').value;
+        const fin = document.getElementById('inputFin').value;
+        if(!inicio || !fin) return alert("Selecciona fechas");
+        selectedRange.start = inicio;
+        selectedRange.end = fin; 
+        document.getElementById('formReserva').style.display = 'block';
+        document.getElementById('rangoSeleccionado').innerHTML = `Confirmado: del ${formatoEuropeo(inicio)} al ${formatoEuropeo(fin)}`;
+        cerrarModal();
+        setTimeout(() => document.getElementById('formReserva').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
     async function enviarReserva() {
         const nombre = document.getElementById('nombre').value;
         const personas = document.getElementById('personas').value;
-        if(!nombre || !personas) return alert("Por favor completa los datos");
-
-        const datos = { fechaInicio: selectedRange.start, fechaFin: selectedRange.end, nombre: nombre, personas: personas };
-        const btnOriginal = document.querySelector('#formReserva button');
-        btnOriginal.disabled = true;
-        btnOriginal.innerText = "Registrando...";
-
+        if(!nombre || !personas) return alert("Completa los datos");
+        const btn = document.querySelector('#formReserva button');
+        btn.disabled = true;
+        btn.innerText = "Registrando...";
         try {
+            const datos = { fechaInicio: selectedRange.start, fechaFin: selectedRange.end, nombre, personas };
             await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
-            const linkGestion = "https://gemayrafa.github.io/reservas-chalet/autorizar-reservas-99";
-            const textoWA = `Hola! Quiero solicitar una reserva.\n\n👤 Nombre: ${nombre}\n👥 Personas: ${personas}\n📅 Fechas: del ${formatoEuropeo(selectedRange.start)} al ${formatoEuropeo(selectedRange.visualEnd)}\n\n🔗 Gestionar aquí: ${linkGestion}`;
+            const textoWA = `Hola! Quiero solicitar una reserva.\n👤: ${nombre}\n👥: ${personas}\n📅: del ${formatoEuropeo(selectedRange.start)} al ${formatoEuropeo(selectedRange.end)}`;
             const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
-            const btnContainer = document.querySelector('#formReserva');
-            btnContainer.innerHTML = `<div style="background: #e7f3ff; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #b3d7ff;"><p style="color: #0d47a1; font-weight: bold;">✅ Solicitud enviada.</p><a href="${urlWA}" target="_blank" style="display: inline-block; background-color: #25D366; color: white; padding: 16px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 1.1em;">📱 Notificar por WhatsApp</a><br><br><small><a href="javascript:location.reload()" style="color: #666;">Cerrar</a></small></div>`;
-        } catch (e) { alert("Error"); btnOriginal.disabled = false; }
+            document.getElementById('formReserva').innerHTML = `
+                <div style="background:#e7f3ff;padding:20px;border-radius:12px;text-align:center;">
+                    <p>✅ Solicitud registrada.</p>
+                    <a href="${urlWA}" target="_blank" style="display:inline-block;background:#25D366;color:white;padding:15px;text-decoration:none;border-radius:8px;font-weight:bold;">WhatsApp</a>
+                    <br><br><small><a href="javascript:location.reload()">Cerrar</a></small>
+                </div>`;
+        } catch (e) { alert("Error"); btn.disabled = false; }
     }
 </script>
 </body>

@@ -17,7 +17,6 @@
         .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
         .status-pendiente { background: #fff3cd; color: #856404; }
         .status-reservado { background: #d4edda; color: #155724; }
-        @media (max-width: 600px) { th, td { padding: 5px; font-size: 0.75rem; } .btn { padding: 5px; } }
     </style>
 </head>
 <body>
@@ -27,6 +26,7 @@
         <thead>
             <tr>
                 <th>Nombre</th>
+                <th>Pax</th>
                 <th>Entrada</th>
                 <th>Salida</th>
                 <th>Estado</th>
@@ -40,19 +40,11 @@
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
-    function formatearFechaLimpia(fechaStr) {
+    function formatearFechaAdmin(fechaStr) {
         if(!fechaStr) return "-";
-        const datePart = fechaStr.split('T')[0];
-        const parts = datePart.split('-');
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-
-    function ajustarSalidaAdmin(fechaStr) {
-        if(!fechaStr) return "-";
-        const datePart = fechaStr.split('T')[0];
-        const parts = datePart.split('-');
-        let d = new Date(parts[0], parts[1] - 1, parts[2]);
-        d.setDate(d.getDate() - 1);
+        // AJUSTE VISUAL ADMIN: Sumamos 1 día a la fecha del Excel para mostrar en tabla
+        let d = new Date(fechaStr.split('T')[0] + "T12:00:00");
+        d.setDate(d.getDate() + 1);
         
         let dia = String(d.getDate()).padStart(2, '0');
         let mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -62,7 +54,7 @@
 
     async function cargarReservas() {
         const tbody = document.querySelector('#tablaReservas tbody');
-        tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
         try {
             const res = await fetch(scriptURL + '?t=' + new Date().getTime());
             const datos = await res.json();
@@ -71,12 +63,13 @@
                 const fila = document.createElement('tr');
                 fila.innerHTML = `
                     <td>${reserva.nombre}</td>
-                    <td>${formatearFechaLimpia(reserva.inicio)}</td>
-                    <td>${ajustarSalidaAdmin(reserva.fin)}</td>
+                    <td>${reserva.personas || '-'}</td>
+                    <td>${formatearFechaAdmin(reserva.inicio)}</td>
+                    <td>${formatearFechaAdmin(reserva.fin)}</td>
                     <td><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
                     <td>
                         <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Ok</button>
-                        <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">X</button>
+                        <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
                     </td>`;
                 tbody.appendChild(fila);
             });
@@ -87,7 +80,7 @@
         if(!confirm(`¿Marcar como ${nuevoEstado}?`)) return;
         try {
             await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "update", id: filaId, nuevoEstado: nuevoEstado }) });
-            alert("Listo");
+            alert("Hecho");
             cargarReservas();
         } catch (e) { alert("Error"); }
     }
