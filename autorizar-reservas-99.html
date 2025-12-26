@@ -9,14 +9,25 @@
         html, body { overflow-x: hidden; width: 100%; position: relative; background-color: #f4f7f6; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
         body { font-family: 'Inter', sans-serif; padding: 10px; box-sizing: border-box; }
         .admin-container { max-width: 1000px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); box-sizing: border-box; width: 100%; }
-        h2 { color: #1a73e8; text-align: center; margin-top: 0; font-size: 1.2rem; }
+        
+        .header-admin { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h2 { color: #1a73e8; margin: 0; font-size: 1.2rem; }
+        
+        .btn-tel { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; color: #333; font-weight: 600; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         th { background-color: #f8f9fa; color: #666; font-weight: 600; }
+        
+        /* Estilos de fila */
+        .fila-reservado { opacity: 0.6; font-weight: normal; background-color: #fafafa; }
+        .fila-pendiente { font-weight: 600; }
+
         .btn-group { display: flex; gap: 8px; margin-top: 5px; }
         .btn { padding: 12px; border-radius: 8px; cursor: pointer; border: none; font-size: 0.85em; font-weight: bold; flex: 1; text-align: center; -webkit-appearance: none; }
         .btn-confirm { background-color: #28a745; color: white; }
         .btn-delete { background-color: #dc3545; color: white; }
+        
         .status-badge { padding: 5px 10px; border-radius: 12px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
         .status-pendiente { background: #fff3cd; color: #856404; }
         .status-reservado { background: #d4edda; color: #155724; }
@@ -29,13 +40,15 @@
             td { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f1f1; min-height: 40px; }
             td:last-child { border-bottom: none; flex-direction: column; align-items: stretch; }
             td::before { content: attr(data-label); font-weight: 600; color: #1a73e8; font-size: 0.7rem; text-transform: uppercase; margin-right: 10px; }
-            .btn-group { width: 100%; margin-top: 10px; }
         }
     </style>
 </head>
 <body>
 <div class="admin-container">
-    <h2>Gestión de Reservas</h2>
+    <div class="header-admin">
+        <h2>Gestión de Reservas</h2>
+        <button class="btn-tel" id="btnConfigTel" onclick="configurarTelefono()">📱 WhatsApp: 34 611 769 813</button>
+    </div>
     <table id="tablaReservas">
         <thead>
             <tr>
@@ -54,6 +67,15 @@
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
+    function configurarTelefono() {
+        const nuevo = prompt("Introduce el nuevo teléfono (solo números, con prefijo):", "34611769813");
+        if (nuevo) {
+            const formateado = nuevo.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4");
+            document.getElementById('btnConfigTel').innerText = `📱 WhatsApp: ${formateado}`;
+            alert("Teléfono actualizado visualmente. Para cambio permanente, actualice el código fuente.");
+        }
+    }
+
     function formatearFechaAdmin(fechaStr) {
         if(!fechaStr) return "-";
         let d = new Date(fechaStr.split('T')[0] + "T12:00:00");
@@ -66,13 +88,20 @@
 
     async function cargarReservas() {
         const tbody = document.querySelector('#tablaReservas tbody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando reservas...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>';
         try {
             const res = await fetch(scriptURL + '?t=' + new Date().getTime());
-            const datos = await res.json();
+            let datos = await res.json();
+            
+            // ORDENACIÓN DESCENDENTE (Más reciente arriba)
+            datos.sort((a, b) => b.id - a.id);
+
             tbody.innerHTML = '';
             datos.forEach((reserva) => {
                 const fila = document.createElement('tr');
+                const esConfirmado = reserva.estado === 'Reservado';
+                fila.className = esConfirmado ? 'fila-reservado' : 'fila-pendiente';
+                
                 fila.innerHTML = `
                     <td data-label="Nombre"><strong>${reserva.nombre}</strong></td>
                     <td data-label="Pax">${reserva.personas || '-'}</td>
@@ -82,7 +111,7 @@
                     <td data-label="Acciones">
                         <div class="btn-group">
                             <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Ok</button>
-                            <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Borrar')">Borrar</button>
+                            <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
                         </div>
                     </td>`;
                 tbody.appendChild(fila);

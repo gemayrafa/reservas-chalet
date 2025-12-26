@@ -25,7 +25,6 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>Reservas Online</h1>
     <div class="status-info">
@@ -58,7 +57,7 @@
 
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec'; 
-    const telAdministrador = '34611769813'; 
+    let telAdministrador = '34611769813'; 
     let selectedRange = { start: '', end: '' }; 
     let calendar;
 
@@ -129,17 +128,14 @@
         const inicio = document.getElementById('inputInicio').value;
         const fin = document.getElementById('inputFin').value;
         if(!inicio || !fin) return alert("Selecciona fechas");
-        
         const eventosExistentes = calendar.getEvents();
         const selIni = new Date(inicio + "T00:00:00");
         const selFin = new Date(fin + "T23:59:59");
         const estaOcupado = eventosExistentes.some(evt => (selIni < evt.end && selFin > evt.start));
-
         if(estaOcupado) {
             calendar.unselect();
             return alert("Error: Las fechas seleccionadas ya están ocupadas.");
         }
-
         selectedRange.start = inicio;
         selectedRange.end = fin; 
         document.getElementById('formReserva').style.display = 'block';
@@ -158,11 +154,8 @@
         try {
             const datos = { fechaInicio: selectedRange.start, fechaFin: selectedRange.end, nombre, personas };
             await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
-            
-            // ENLACE DE GESTIÓN RESTAURADO
             const linkGestion = "https://gemayrafa.github.io/reservas-chalet/autorizar-reservas-99";
             const textoWA = `Hola! Quiero solicitar una reserva.\n👤: ${nombre}\n👥: ${personas}\n📅: del ${formatoEuropeo(selectedRange.start)} al ${formatoEuropeo(selectedRange.end)}\n\n🔗 Gestionar aquí: ${linkGestion}`;
-            
             const urlWA = `https://wa.me/${telAdministrador}?text=${encodeURIComponent(textoWA)}`;
             document.getElementById('formReserva').innerHTML = `
                 <div class="msg-exito">
