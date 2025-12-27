@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario de Responsables</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .cal-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 8px 15px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; background: #f0f0f0; font-weight: 600; }
+        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .day-name { text-align: center; font-size: 0.7rem; font-weight: bold; color: #666; padding-bottom: 10px; }
+        .cell { border: 1px solid #eee; border-radius: 6px; min-height: 60px; padding: 5px; text-align: center; background: #fafafa; }
+        .date { font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
+        .resp { font-size: 0.75rem; color: #1a73e8; font-weight: 600; line-height: 1.1; }
+        .off { opacity: 0.3; }
+        h2 { font-size: 1.1rem; color: #333; margin: 0; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div class="cal-container">
+    <div class="header">
+        <button class="btn" onclick="move(-1)">◀</button>
+        <h2 id="mes-anio">Cargando...</h2>
+        <button class="btn" onclick="move(1)">▶</button>
+    </div>
+    <div class="grid">
+        <div class="day-name">Lun</div><div class="day-name">Mar</div><div class="day-name">Mié</div>
+        <div class="day-name">Jue</div><div class="day-name">Vie</div><div class="day-name">Sáb</div><div class="day-name">Dom</div>
+    </div>
+    <div class="grid" id="cal-body"></div>
+</div>
+
+<script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzJz8kNj7i0PZvq2_3_E7H_HbhHwHy-2kXagEWzyv0z7c5e8i06uRhyXOFeCKEVHfWD/exec';
+    let viewDate = new Date();
+    let cycleData = [];
+
+    async function init() {
+        try {
+            const res = await fetch(scriptURL + '?action=getCiclo');
+            cycleData = await res.json();
+            render();
+        } catch (e) { document.getElementById('mes-anio').innerText = "Error de conexión"; }
+    }
+
+    function render() {
+        const body = document.getElementById('cal-body');
+        const label = document.getElementById('mes-anio');
+        body.innerHTML = '';
+        
+        label.innerText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(viewDate);
+        
+        const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+        let startOffset = (first.getDay() === 0) ? 6 : first.getDay() - 1;
+        
+        const refDate = new Date(2025, 11, 29); // Lunes inicio ciclo
+        const startPoint = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1 - startOffset);
+
+        for (let i = 0; i < 42; i++) {
+            const d = new Date(startPoint);
+            d.setDate(startPoint.getDate() + i);
+            
+            const diffWeeks = Math.floor((d.getTime() - refDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+            const idx = ((diffWeeks % 208) + 208) % 208;
+            const name = cycleData.length > 0 ? (cycleData[idx]?.responsable || "-") : "...";
+
+            const div = document.createElement('div');
+            div.className = `cell ${d.getMonth() !== viewDate.getMonth() ? 'off' : ''}`;
+            div.innerHTML = `<span class="date">${d.getDate()}</span><span class="resp">${name}</span>`;
+            body.appendChild(div);
+        }
+    }
+
+    function move(n) { viewDate.setMonth(viewDate.getMonth() + n); render(); }
+    init();
+</script>
+</body>
+</html>

@@ -6,48 +6,42 @@
     <title>Panel Admin - Gestión</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        html, body { overflow-x: hidden; width: 100%; position: relative; background-color: #f4f7f6; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+        html, body { overflow-x: hidden; width: 100%; background-color: #f4f7f6; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; padding: 10px; box-sizing: border-box; }
-        .admin-container { max-width: 1000px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); box-sizing: border-box; width: 100%; }
-        
+        .admin-container { max-width: 1000px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header-admin { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         h2 { color: #1a73e8; margin: 0; font-size: 1.2rem; }
-        
-        .btn-tel { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; color: #333; font-weight: 600; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        .header-buttons { display: flex; gap: 10px; }
+        .btn-action { padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 600; border: 1px solid #ccc; background: #f0f0f0; text-decoration: none; color: #333; display: inline-flex; align-items: center; }
+        .btn-cal-link { background: #1a73e8; color: white; border: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         th { background-color: #f8f9fa; color: #666; font-weight: 600; }
-        
-        /* Estilos de fila */
-        .fila-reservado { opacity: 0.6; font-weight: normal; background-color: #fafafa; }
-        .fila-pendiente { font-weight: 600; }
-
-        .btn-group { display: flex; gap: 8px; margin-top: 5px; }
-        .btn { padding: 12px; border-radius: 8px; cursor: pointer; border: none; font-size: 0.85em; font-weight: bold; flex: 1; text-align: center; -webkit-appearance: none; }
-        .btn-confirm { background-color: #28a745; color: white; }
-        .btn-delete { background-color: #dc3545; color: white; }
-        
-        .status-badge { padding: 5px 10px; border-radius: 12px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
+        .status-badge { padding: 4px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
         .status-pendiente { background: #fff3cd; color: #856404; }
         .status-reservado { background: #d4edda; color: #155724; }
-
+        .btn-group { display: flex; gap: 5px; }
+        .btn-confirmar { background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .btn-eliminar { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
         @media (max-width: 768px) {
-            .admin-container { padding: 10px; }
-            table, thead, tbody, th, td, tr { display: block; width: 100%; box-sizing: border-box; }
+            .header-admin { flex-direction: column; align-items: flex-start; }
+            table, thead, tbody, th, td, tr { display: block; width: 100%; }
             thead { display: none; }
-            tr { margin-bottom: 15px; border: 1px solid #e1e1e1; border-radius: 10px; padding: 12px; background: #fff; }
-            td { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f1f1; min-height: 40px; }
-            td:last-child { border-bottom: none; flex-direction: column; align-items: stretch; }
-            td::before { content: attr(data-label); font-weight: 600; color: #1a73e8; font-size: 0.7rem; text-transform: uppercase; margin-right: 10px; }
+            tr { margin-bottom: 15px; border: 1px solid #e1e1e1; border-radius: 10px; padding: 10px; }
+            td { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+            td::before { content: attr(data-label); font-weight: 600; color: #1a73e8; font-size: 0.7rem; text-transform: uppercase; }
+            .btn-group { width: 100%; justify-content: flex-end; }
         }
     </style>
 </head>
 <body>
 <div class="admin-container">
     <div class="header-admin">
-        <h2>Gestión de Reservas</h2>
-        <button class="btn-tel" id="btnConfigTel" onclick="configurarTelefono()">📱 WhatsApp: 34 611 769 813</button>
+        <h2>Panel de Administración</h2>
+        <div class="header-buttons">
+            <a href="calendario-previsto.html" target="_blank" class="btn-action btn-cal-link">📅 Ver Calendario Previsto</a>
+            <button class="btn-action" onclick="actualizarTelefono()">📱 Tel: <span id="displayTel">34611769813</span></button>
+        </div>
     </div>
     <table id="tablaReservas">
         <thead>
@@ -57,33 +51,27 @@
                 <th>Entrada</th>
                 <th>Salida</th>
                 <th>Estado</th>
-                <th>Acción</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 </div>
-
 <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyegl656mrxyeVid7gGYyVQGRdCzyrCOWLb-7xbW_D_VwkcJ1mhJkTr5o1tAcEbn5BQ/exec';
 
-    function configurarTelefono() {
-        const nuevo = prompt("Introduce el nuevo teléfono (solo números, con prefijo):", "34611769813");
-        if (nuevo) {
-            const formateado = nuevo.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4");
-            document.getElementById('btnConfigTel').innerText = `📱 WhatsApp: ${formateado}`;
-            alert("Teléfono actualizado visualmente. Para cambio permanente, actualice el código fuente.");
-        }
+    function inicializarTelefono() {
+        const telGuardado = localStorage.getItem('telAdmin');
+        if (telGuardado) document.getElementById('displayTel').innerText = telGuardado;
     }
 
-    function formatearFechaAdmin(fechaStr) {
-        if(!fechaStr) return "-";
-        let d = new Date(fechaStr.split('T')[0] + "T12:00:00");
-        d.setDate(d.getDate() + 1); 
-        let dia = String(d.getDate()).padStart(2, '0');
-        let mes = String(d.getMonth() + 1).padStart(2, '0');
-        let anio = d.getFullYear();
-        return `${dia}/${mes}/${anio}`;
+    function actualizarTelefono() {
+        const telActual = document.getElementById('displayTel').innerText;
+        const nuevoTel = prompt("Nuevo número de WhatsApp:", telActual);
+        if (nuevoTel !== null && nuevoTel.trim() !== "") {
+            localStorage.setItem('telAdmin', nuevoTel.trim());
+            document.getElementById('displayTel').innerText = nuevoTel.trim();
+        }
     }
 
     async function cargarReservas() {
@@ -92,42 +80,60 @@
         try {
             const res = await fetch(scriptURL + '?t=' + new Date().getTime());
             let datos = await res.json();
-            
-            // ORDENACIÓN DESCENDENTE (Más reciente arriba)
-            datos.sort((a, b) => b.id - a.id);
-
             tbody.innerHTML = '';
-            datos.forEach((reserva) => {
+            
+            const formatearFecha = (fechaISO) => {
+                if (!fechaISO || fechaISO === "-") return "-";
+                let d = new Date(fechaISO.split('T')[0] + "T12:00:00");
+                d.setDate(d.getDate() + 1);
+                return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+            };
+
+            datos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
+            datos.forEach(r => {
                 const fila = document.createElement('tr');
-                const esConfirmado = reserva.estado === 'Reservado';
-                fila.className = esConfirmado ? 'fila-reservado' : 'fila-pendiente';
-                
+                const estado = r.estado || "Pendiente";
                 fila.innerHTML = `
-                    <td data-label="Nombre"><strong>${reserva.nombre}</strong></td>
-                    <td data-label="Pax">${reserva.personas || '-'}</td>
-                    <td data-label="Entrada">${formatearFechaAdmin(reserva.inicio)}</td>
-                    <td data-label="Salida">${formatearFechaAdmin(reserva.fin)}</td>
-                    <td data-label="Estado"><span class="status-badge status-${reserva.estado.toLowerCase()}">${reserva.estado}</span></td>
+                    <td data-label="Nombre"><strong>${r.nombre || "S/N"}</strong></td>
+                    <td data-label="Pax">${r.personas || "0"}</td>
+                    <td data-label="Entrada">${formatearFecha(r.inicio)}</td>
+                    <td data-label="Salida">${formatearFecha(r.fin)}</td>
+                    <td data-label="Estado"><span class="status-badge status-${estado.toLowerCase()}">${estado}</span></td>
                     <td data-label="Acciones">
                         <div class="btn-group">
-                            <button class="btn btn-confirm" onclick="cambiarEstado(${reserva.id}, 'Reservado')">Ok</button>
-                            <button class="btn btn-delete" onclick="cambiarEstado(${reserva.id}, 'Cancelado')">Borrar</button>
+                            <button class="btn-confirmar" onclick="confirmarReserva('${r.id}')">Ok</button>
+                            <button class="btn-eliminar" onclick="eliminarRegistro('${r.id}')">Borrar</button>
                         </div>
-                    </td>`;
+                    </td>
+                `;
                 tbody.appendChild(fila);
             });
-        } catch (e) { tbody.innerHTML = '<td colspan="6" style="text-align:center;">Error al cargar</td>'; }
+        } catch (e) { tbody.innerHTML = '<tr><td colspan="6">Error de conexión.</td></tr>'; }
     }
 
-    async function cambiarEstado(filaId, nuevoEstado) {
-        if(!confirm(`¿Marcar como ${nuevoEstado}?`)) return;
-        try {
-            await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "update", id: filaId, nuevoEstado: nuevoEstado }) });
-            alert("Hecho");
-            cargarReservas();
-        } catch (e) { alert("Error"); }
+    async function confirmarReserva(id) {
+        if(!confirm("¿Confirmar esta reserva?")) return;
+        ejecutarAccion({ action: "update", id: id, nuevoEstado: "Reservado" });
     }
-    window.onload = cargarReservas;
+
+    async function eliminarRegistro(id) {
+        if(!confirm("¡ATENCIÓN! Esto ELIMINARÁ el registro de la hoja y liberará las fechas. ¿Continuar?")) return;
+        ejecutarAccion({ action: "delete", id: id });
+    }
+
+    async function ejecutarAccion(cuerpo) {
+        try {
+            await fetch(scriptURL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify(cuerpo) 
+            });
+            alert("Solicitud procesada.");
+            setTimeout(cargarReservas, 1500);
+        } catch (e) { alert("Error al conectar."); }
+    }
+
+    window.onload = () => { inicializarTelefono(); cargarReservas(); };
 </script>
 </body>
 </html>
